@@ -6,14 +6,15 @@ local Api = {}
 -- API URL
 -- Api.COMPLETIONS_URL = "https://api.openai.com/v1/completions"
 Api.COMPLETIONS_URL =
-"https://openai-eaus-dev-002.openai.azure.com/openai/deployments/text-davinci-003/completions?api-version=2023-03-15-preview"
+"https://openai-swce-dev-003.openai.azure.com/openai/deployments/gpt-4-1106-preview/chat/completions?api-version=2023-03-15-preview"
+
 -- Api.CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
 Api.CHAT_COMPLETIONS_URL =
-"https://openai-eaus-dev-002.openai.azure.com/openai/deployments/gpt-4/chat/completions?api-version=2023-03-15-preview"
+"https://openai-swce-dev-003.openai.azure.com/openai/deployments/gpt-4-1106-preview/chat/completions?api-version=2023-03-15-preview"
 -- Api.EDITS_URL = "https://api.openai.com/v1/edits"
 
 Api.EDITS_URL =
-"https://openai-eaus-dev-002.openai.azure.com/openai/deployments/gpt-4/chat/completions?api-version=2023-03-15-preview"
+"https://openai-swce-dev-003.openai.azure.com/openai/deployments/gpt-4-1106-preview/chat/completions?api-version=2023-03-15-preview"
 -- API KEY
 Api.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not Api.OPENAI_API_KEY then
@@ -21,17 +22,20 @@ if not Api.OPENAI_API_KEY then
 end
 
 function Api.completions(custom_params, cb)
-    local params = vim.tbl_extend("keep", custom_params, Config.options.openai_params)
+    local params = vim.tbl_extend("force", custom_params, Config.options.openai_params)
     Api.make_call(Api.CHAT_COMPLETIONS_URL, params, cb)
 end
 
 function Api.chat_completions(custom_params, cb)
-    local params = vim.tbl_extend("keep", custom_params, Config.options.openai_params)
+
+    -- print("CHAT CUSTOM: " .. vim.fn.json_encode(custom_params))
+    -- print("CHAT openAI: " .. vim.fn.json_encode(Config.options.openai_params))
+    local params = vim.tbl_extend("force", custom_params, Config.options.openai_params)
     Api.make_call(Api.CHAT_COMPLETIONS_URL, params, cb)
 end
 
 function Api.edits(custom_params, cb)
-    local params = vim.tbl_extend("keep", custom_params, Config.options.openai_edit_params)
+    local params = vim.tbl_extend("force", custom_params, Config.options.openai_edit_params)
     Api.make_call(Api.COMPLETIONS_URL, params, cb)
 end
 
@@ -42,10 +46,12 @@ function Api.make_call(url, params, cb)
         vim.notify("Cannot open temporary message file: " .. TMP_MSG_FILENAME, vim.log.levels.ERROR)
         return
     end
-    --print("TMP_MSG_FILENAME: " .. vim.fn.json_encode(params))
-    -- --print("OPENAI_API_KEY: " .. Api.OPENAI_API_KEY)
+    -- print("TMP_MSG_FILENAME SEND: " .. vim.fn.json_encode(params))
+    -- print("OPENAI_API_KEY: " .. Api.OPENAI_API_KEY)
     f:write(vim.fn.json_encode(params))
     f:close()
+    -- print 
+    -- ("TMP_MSG_FILENAME con:tent: " .. vim.fn.json_encode(vim.fn.readfile(TMP_MSG_FILENAME)))
     Api.job = job
         :new({
             command = "curl",
@@ -75,7 +81,7 @@ Api.handle_response = vim.schedule_wrap(function(response, exit_code, cb)
     local result = table.concat(response:result(), "\n")
     --print("Result: " .. result)
     local json = vim.fn.json_decode(result)
-    --print("JSON: " .. result)
+    -- print("JSON: " .. result)
     if json == nil then
         cb("No Response.")
     elseif json.error then
